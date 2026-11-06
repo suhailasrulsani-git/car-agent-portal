@@ -1,0 +1,1123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Clickable demo of a portal for car sales agents. Fake leads only.">
+<title>Car Agent Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@500;600&display=swap">
+<style>
+/* Layout: one working screen. Phone = one pane with bottom tabs. Laptop = left rail with list, chat and lead panes.
+   Type: Barlow, drawn from road signs and number plates, with its semi-condensed cut for scores and timers.
+   Colour: cool neutrals, one petrol accent. Hot, warm and cold are the only other colours besides status. */
+:root{
+  --bg:#F1F4F5;--surface:#FFFFFF;--surface-2:#E7ECED;--line:#D2DADC;--ctl:#7A8A91;--text:#142125;--muted:#52636A;
+  --accent:#0C5C68;--accent-fg:#FFFFFF;--accent-soft:#DAECEE;
+  --hot:#AE3415;--hot-bg:#FBE5DE;--warm:#7D5100;--warm-bg:#F7ECCF;--cold:#435B69;--cold-bg:#E1E8EC;
+  --good:#17643A;--good-bg:#DBEFE3;--bad:#AD231B;--bad-bg:#FBE3E1;
+  --demo-bg:#1F2E35;--demo-fg:#E6EDEF;--demo-line:#6B8089;--scrim:rgba(10,20,24,.5);
+  --font-ui:"Barlow",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --font-num:"Barlow Semi Condensed","Barlow",system-ui,"Segoe UI",sans-serif;
+  --gl:max(16px,env(safe-area-inset-left,0px));--gr:max(16px,env(safe-area-inset-right,0px));
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0F171A;--surface:#162023;--surface-2:#1F2B2F;--line:#2E3C41;--ctl:#667980;--text:#E7EDEE;--muted:#A0B1B6;
+  --accent:#58C0CE;--accent-fg:#06262B;--accent-soft:#17383E;
+  --hot:#FF9A7E;--hot-bg:#3F2017;--warm:#EBC066;--warm-bg:#352A10;--cold:#A9BFCB;--cold-bg:#22313A;
+  --good:#74D49E;--good-bg:#143222;--bad:#FF9F96;--bad-bg:#3E1B18;
+  --demo-bg:#0A1113;--demo-fg:#CBD8DB;--demo-line:#56686F;--scrim:rgba(0,0,0,.6);color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0F171A;--surface:#162023;--surface-2:#1F2B2F;--line:#2E3C41;--ctl:#667980;--text:#E7EDEE;--muted:#A0B1B6;
+  --accent:#58C0CE;--accent-fg:#06262B;--accent-soft:#17383E;
+  --hot:#FF9A7E;--hot-bg:#3F2017;--warm:#EBC066;--warm-bg:#352A10;--cold:#A9BFCB;--cold-bg:#22313A;
+  --good:#74D49E;--good-bg:#143222;--bad:#FF9F96;--bad-bg:#3E1B18;
+  --demo-bg:#0A1113;--demo-fg:#CBD8DB;--demo-line:#56686F;--scrim:rgba(0,0,0,.6);color-scheme:dark}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--text);font:400 16px/1.4 var(--font-ui);overflow:hidden;-webkit-text-size-adjust:100%}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--demo-bg)}
+button,input,select,textarea{font:inherit;color:inherit}
+h1,h2,h3,p,ul{margin:0}
+ul{padding:0;list-style:none}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.row-main:focus-visible,.strip:focus-visible,.nav-item:focus-visible,#chatBody:focus-visible,.tbl-wrap:focus-visible{outline-offset:-2px}
+h1:focus,h2:focus{outline:none}
+.num{font-family:var(--font-num);font-variant-numeric:tabular-nums}
+
+#app{height:100%;display:flex;flex-direction:column;min-height:0}
+.demobar{flex:none;display:flex;align-items:center;gap:8px;min-height:44px;padding-block:4px;padding-left:var(--gl);padding-right:var(--gr);background:var(--demo-bg);color:var(--demo-fg);font-size:14px}
+.demobar p{flex:1;min-width:0}
+.demobar .long{display:none}
+.demobar button{min-height:36px;padding:0 12px;background:none;border:1px solid var(--demo-line);border-radius:6px;color:var(--demo-fg);cursor:pointer;white-space:nowrap}
+.demobar button:hover{background:rgba(255,255,255,.1)}
+.demobar :focus-visible{outline-color:var(--demo-fg)}
+.shell{flex:1;display:flex;flex-direction:column;min-height:0}
+#main{flex:1;min-height:0;min-width:0;overflow:auto;background:var(--surface);order:1}
+#main[data-view="inbox"]{overflow:hidden}
+.nav{order:2;flex:none;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
+.nav-brand,.nav-who{display:none}
+.nav-item{position:relative;min-height:54px;padding:6px 2px;background:none;border:0;cursor:pointer;color:var(--muted);font-size:14px;font-weight:500}
+.nav-item[aria-current="page"]{color:var(--accent);font-weight:600;box-shadow:inset 0 2px 0 var(--accent)}
+.nav-item .count{display:inline-block;min-width:18px;margin-left:3px;padding:0 5px;border-radius:9px;background:var(--accent);color:var(--accent-fg);font:600 12px/18px var(--font-num);text-align:center}
+@media (max-width:759px){body[data-focus="pane"] .nav{display:none}}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:0 14px;border:1px solid var(--ctl);border-radius:6px;background:var(--surface);color:var(--text);font-weight:500;cursor:pointer;text-align:center}
+.btn:hover{background:var(--surface-2)}
+.btn[disabled]{opacity:.55;cursor:not-allowed}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg);font-weight:600}
+.btn-primary:hover{background:var(--accent);filter:brightness(1.12)}
+.btn-danger{background:var(--bad);border-color:var(--bad);color:var(--surface);font-weight:600}
+.btn-danger:hover{background:var(--bad);filter:brightness(1.1)}
+.btn-danger-quiet{color:var(--bad);border-color:var(--bad)}
+.btn-small{min-height:38px;padding:0 10px;font-size:14px}
+.btn-demo{border-style:dashed;border-color:var(--muted);color:var(--muted);background:transparent}
+.link{background:none;border:0;padding:0;color:var(--accent);font-weight:500;text-decoration:underline;cursor:pointer}
+
+/* Score chip */
+.score{flex:none;width:54px;min-height:48px;padding:4px 2px;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:var(--font-num);text-align:center}
+.score b{font-size:20px;font-weight:600;line-height:1.05;font-variant-numeric:tabular-nums}
+.score span{font-size:13px;font-weight:500;line-height:1.2}
+.hot{background:var(--hot-bg);color:var(--hot)}
+.warm{background:var(--warm-bg);color:var(--warm)}
+.cold{background:var(--cold-bg);color:var(--cold)}
+.won{background:var(--good-bg);color:var(--good)}
+.lost{background:var(--surface-2);color:var(--muted)}
+.won b,.lost b{font-size:16px}
+.score.isnew{background:var(--accent-soft);color:var(--text)}
+.isnew b{font-size:16px}
+
+/* Screen head and lists */
+.head{padding-block:16px 12px;padding-left:var(--gl);padding-right:var(--gr)}
+h1{font:600 26px/1.15 var(--font-num)}
+.head p{color:var(--muted);margin-top:2px}
+.sec-title{display:flex;justify-content:space-between;gap:8px;align-items:baseline;padding-block:14px 6px;padding-left:var(--gl);padding-right:var(--gr);font:600 13px/1.3 var(--font-ui);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.sec-title .num{font-size:15px;letter-spacing:0}
+.list{border-top:1px solid var(--line)}
+.row{display:flex;align-items:stretch;border-bottom:1px solid var(--line)}
+.row-main{flex:1;min-width:0;display:flex;gap:12px;align-items:flex-start;padding-block:10px;padding-left:var(--gl);padding-right:var(--gr);background:none;border:0;text-align:left;cursor:pointer}
+.row-main:hover{background:var(--bg)}
+.row-main[aria-current="true"]{background:var(--accent-soft)}
+.row-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.row-top{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.row-name{font-weight:600;min-width:0;overflow-wrap:anywhere}
+.row-ch{flex:none;font-size:13px;color:var(--muted)}
+.row-sub{font-size:14px;color:var(--muted);overflow-wrap:anywhere}
+.row-note{font-size:15px;overflow-wrap:anywhere}
+.row-snip{font-size:14px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.unread .row-snip{color:var(--text);font-weight:500}
+.dot{display:inline-block;width:8px;height:8px;margin-right:6px;border-radius:50%;background:var(--accent);vertical-align:1px}
+.row-act{flex:none;align-self:center;margin-right:var(--gr)}
+.t-soon{color:var(--warm);font-weight:500}
+.t-late{color:var(--bad);font-weight:500}
+.empty{padding-block:14px;padding-left:var(--gl);padding-right:var(--gr);color:var(--muted);border-bottom:1px solid var(--line)}
+.today-col{min-width:0}
+@media (min-width:1100px){.today-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 32px;padding-left:var(--gl);padding-right:var(--gr)}.today-col{--gl:0px;--gr:0px}}
+
+/* Inbox panes */
+.inbox{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr);height:100%;min-height:0}
+.pane{display:none;flex-direction:column;min-width:0;min-height:0;overflow:hidden}
+.inbox[data-pane="list"] .pane-list,.inbox[data-pane="chat"] .pane-chat,.inbox[data-pane="details"] .pane-details{display:flex}
+.list-tools{flex:none;display:flex;flex-direction:column;gap:8px;padding-block:12px 10px;padding-left:var(--gl);padding-right:var(--gr)}
+.list-tools input{width:100%}
+.list-tools .chips{flex-wrap:wrap;overflow:visible}
+.chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;min-height:38px;padding:0 12px;border:1px solid var(--ctl);border-radius:6px;background:var(--surface);cursor:pointer;font-size:14px;font-weight:500;white-space:nowrap}
+.chip:hover{background:var(--surface-2)}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.chip .num{margin-left:3px}
+.conv{flex:1;overflow-y:auto;min-height:0;border-top:1px solid var(--line)}
+.conv .row-main{padding-block:9px}
+
+/* Chat */
+.chat-head{flex:none;display:flex;align-items:center;gap:8px;min-height:56px;padding-block:6px;padding-left:var(--gl);padding-right:var(--gr);border-bottom:1px solid var(--line)}
+.chat-id{flex:1;min-width:0}
+.chat-id h2{font:600 19px/1.2 var(--font-num);overflow-wrap:anywhere}
+.chat-id p{font-size:13px;color:var(--muted);overflow-wrap:anywhere}
+.strip{flex:none;display:flex;gap:10px;align-items:center;width:100%;padding-block:8px;padding-left:var(--gl);padding-right:var(--gr);background:var(--surface);border:0;border-bottom:1px solid var(--line);text-align:left;cursor:pointer}
+.strip:hover{background:var(--bg)}
+.strip span.t{flex:1;min-width:0;font-size:14px;overflow-wrap:anywhere}
+.winbar{flex:none;padding-block:7px;padding-left:var(--gl);padding-right:var(--gr);font-size:14px;border-bottom:1px solid var(--line);background:var(--bg);color:var(--muted)}
+.winbar.soon{background:var(--warm-bg);color:var(--warm)}
+.winbar.closed{background:var(--bad-bg);color:var(--bad)}
+.winbar .num{font-size:15px;font-weight:600}
+.msgs{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding-block:12px;padding-left:var(--gl);padding-right:var(--gr);background:var(--bg)}
+.msg-day{align-self:center;font-size:13px;color:var(--muted);padding-block:2px}
+.msg{max-width:min(84%,540px);padding:8px 12px;border-radius:10px;overflow-wrap:anywhere}
+.msg.c{align-self:flex-start;background:var(--surface);border:1px solid var(--line)}
+.msg.a{align-self:flex-end;background:var(--accent-soft)}
+.msg-meta{margin-top:3px;font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:0 8px;justify-content:flex-end}
+.msg.c .msg-meta{justify-content:flex-start}
+.msg-tag{font-weight:600}
+.composer{flex:none;display:flex;flex-direction:column;gap:8px;padding-block:8px;padding-left:var(--gl);padding-right:var(--gr);border-top:1px solid var(--line);background:var(--surface)}
+.tools{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.tools .btn-demo{margin-left:auto}
+.write{display:flex;gap:8px;align-items:stretch}
+.write textarea{flex:1;min-width:0;min-height:48px;max-height:140px;resize:vertical}
+input[type=text],input[type=search],input[type=number],select,textarea{min-height:44px;padding:8px 10px;border:1px solid var(--ctl);border-radius:6px;background:var(--surface);color:var(--text);font-size:16px}
+input::placeholder,textarea::placeholder{color:var(--muted)}
+.blocked{font-size:15px}
+
+/* Lead pane */
+.pane-details{background:var(--surface)}
+.d-scroll{flex:1;min-height:0;overflow-y:auto}
+.d-sec{padding-block:14px;padding-left:var(--gl);padding-right:var(--gr);border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:10px}
+.d-sec h3{font:600 13px/1.3 var(--font-ui);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.int-top{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.int-num{font:600 44px/1 var(--font-num);font-variant-numeric:tabular-nums}
+.int-lab{padding:1px 8px;border-radius:6px;font:600 16px/1.4 var(--font-num)}
+.int-src{font-size:13px;color:var(--muted)}
+.scale{position:relative;display:grid;grid-template-columns:41fr 20fr 39fr;gap:2px;height:8px}
+.scale i{display:block;border-radius:2px}
+.scale i.c{background:var(--cold-bg)}.scale i.w{background:var(--warm-bg)}.scale i.h{background:var(--hot-bg)}
+.scale em{position:absolute;top:-3px;width:3px;height:14px;background:var(--text);border-radius:1px}
+.scale-lab{display:grid;grid-template-columns:41fr 20fr 39fr;gap:2px;font-size:13px;color:var(--muted);margin-top:-6px}
+.lbl{font-weight:600}
+.small{font-size:13px;color:var(--muted)}
+.note-busy{padding:8px 10px;border-radius:6px;background:var(--accent-soft);font-size:14px}
+.sp{display:block;width:100%;height:auto;max-width:100%}
+.sp-area{fill:var(--accent-soft);stroke:none}
+.sp-line{fill:none;stroke:var(--accent);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.sp-grid{stroke:var(--line);stroke-width:1;stroke-dasharray:3 3;fill:none}
+.sp-dot{fill:var(--accent);stroke:var(--surface);stroke-width:2}
+.sp-hit{fill:transparent;stroke:none}
+.sp-txt{fill:var(--muted);font:500 12px var(--font-num)}
+.sp-txt.end{fill:var(--text);font-weight:600}
+details summary{cursor:pointer;font-size:14px;font-weight:500;color:var(--accent);min-height:32px;display:list-item}
+.hist{width:100%;border-collapse:collapse;font-size:14px;margin-top:6px}
+.hist th{text-align:left;font-weight:600;color:var(--muted);font-size:13px}
+.hist th,.hist td{padding:4px 8px 4px 0;border-bottom:1px solid var(--line)}
+.hist .num{font-size:15px}
+.field{display:flex;flex-direction:column;gap:3px;min-width:0}
+.field label{font-size:13px;font-weight:600;color:var(--muted)}
+.field input,.field select,.field textarea{width:100%}
+.form-row{display:flex;gap:8px;flex-wrap:wrap}
+.form-row .btn{flex:1 1 auto}
+.fu-item{display:flex;gap:8px;align-items:center;justify-content:space-between;padding-block:4px;border-bottom:1px solid var(--line)}
+.fu-item>div{min-width:0;overflow-wrap:anywhere}
+.err{color:var(--bad);font-size:14px}
+
+/* Leads */
+.filters{display:flex;gap:10px;flex-wrap:wrap;padding-bottom:10px;padding-left:var(--gl);padding-right:var(--gr)}
+.filters .field{flex:1 1 130px;max-width:220px}
+.stage-chips{padding-bottom:10px;padding-left:var(--gl);padding-right:var(--gr)}
+.board{border-top:1px solid var(--line)}
+.col{display:none}
+.col.on{display:block}
+.col-title{display:none}
+.lead-item{display:flex;flex-direction:column;border-bottom:1px solid var(--line)}
+.lead-item .row-main{padding-bottom:6px}
+.lead-move{padding-bottom:10px;padding-left:calc(var(--gl) + 66px);padding-right:var(--gr)}
+.lead-move .btn{width:100%}
+.lead-done{padding-bottom:10px;padding-left:calc(var(--gl) + 66px);padding-right:var(--gr);font-size:14px;color:var(--muted)}
+@media (min-width:1000px){
+  #main[data-view="leads"]{overflow:hidden;display:flex;flex-direction:column}
+  .stage-chips{display:none}
+  .board{flex:1;min-height:0;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(230px,1fr);overflow:auto;gap:0;--gl:10px;--gr:10px}
+  .col,.col.on{display:block;min-width:0;border-right:1px solid var(--line)}
+  .col:last-child{border-right:0}
+  .col-title{position:sticky;top:0;z-index:1;display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:10px;font:600 15px/1.3 var(--font-ui);border-bottom:1px solid var(--line);background:var(--bg)}
+  .lead-move,.lead-done{padding-left:10px}
+  .board .row-main{gap:8px}
+}
+
+/* Reports */
+.rep{padding-block:6px 18px;max-width:780px}
+.rep h2{padding-block:14px 8px;padding-left:var(--gl);padding-right:var(--gr);font:600 19px/1.2 var(--font-num)}
+.rep-sum{padding-bottom:8px;padding-left:var(--gl);padding-right:var(--gr);color:var(--muted)}
+.rep-sum b{color:var(--text);font:600 26px/1 var(--font-num);font-variant-numeric:tabular-nums}
+.bars{display:flex;flex-direction:column;padding-left:var(--gl);padding-right:var(--gr)}
+.bar-row{display:grid;grid-template-columns:minmax(0,150px) minmax(0,1fr) 34px;gap:10px;align-items:center;min-height:36px;border-top:1px solid var(--line)}
+.bar-row:last-child{border-bottom:1px solid var(--line)}
+.bar-lab{font-size:15px;overflow-wrap:anywhere}
+.bar-track{display:block;height:10px}
+.bar{display:block;height:10px;background:var(--accent);border-radius:0 4px 4px 0}
+.bar-val{text-align:right;font:600 17px/1 var(--font-num);font-variant-numeric:tabular-nums}
+.rep-note{padding-block:12px 4px;padding-left:var(--gl);padding-right:var(--gr);font-size:14px;color:var(--muted)}
+
+/* Settings and Admin */
+.set{max-width:780px;padding-bottom:24px}
+.set h2{padding-block:18px 8px;padding-left:var(--gl);padding-right:var(--gr);font:600 19px/1.2 var(--font-num)}
+.set-p{padding-bottom:8px;padding-left:var(--gl);padding-right:var(--gr);color:var(--muted);font-size:15px}
+.set-row{display:flex;gap:10px;justify-content:space-between;align-items:center;padding-block:10px;padding-left:var(--gl);padding-right:var(--gr);border-top:1px solid var(--line)}
+.set-row:last-of-type{border-bottom:1px solid var(--line)}
+.set-row>div:first-child{min-width:0;overflow-wrap:anywhere}
+.set-acts{flex:none;display:flex;gap:6px}
+.set-add{padding-block:10px;padding-left:var(--gl);padding-right:var(--gr)}
+.set-list{margin:0;padding-block:0 8px;padding-left:calc(var(--gl) + 18px);padding-right:var(--gr);list-style:disc;font-size:15px}
+.tag{display:inline-block;padding:1px 8px;border-radius:6px;font-size:13px;font-weight:600;white-space:nowrap}
+.tag.good{background:var(--good-bg);color:var(--good)}
+.tag.bad{background:var(--bad-bg);color:var(--bad)}
+.tag.wait{background:var(--warm-bg);color:var(--warm)}
+.tag.off{background:var(--surface-2);color:var(--muted)}
+.tbl-wrap{overflow-x:auto;border-top:1px solid var(--line)}
+.tbl{border-collapse:collapse;width:100%;min-width:760px;font-size:15px}
+.tbl th{text-align:left;font-size:13px;font-weight:600;color:var(--muted);background:var(--bg)}
+.tbl th,.tbl td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+.tbl th:first-child,.tbl td:first-child{padding-left:var(--gl)}
+.tbl .r{text-align:right;font-family:var(--font-num);font-variant-numeric:tabular-nums}
+.tbl .issue{font-size:14px;color:var(--bad)}
+
+/* Dialog and toast */
+dialog{width:min(460px,calc(100vw - 32px));max-height:calc(100% - 48px);padding:0;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--text)}
+dialog::backdrop{background:var(--scrim)}
+.dlg{display:flex;flex-direction:column;gap:12px;padding:16px;max-height:calc(100dvh - 50px);min-height:0}
+.dlg h2{font:600 21px/1.2 var(--font-num)}
+.dlg-body{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding:5px;margin:-3px}
+.dlg-body:focus{outline:none}
+.car-grid{display:flex;flex-direction:column;gap:10px}
+@media (min-width:640px){.car-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}}
+.dlg-foot{flex:none;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.pick{display:flex;gap:10px;align-items:flex-start;padding:10px;border:1px solid var(--ctl);border-radius:6px;cursor:pointer}
+.pick:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+.pick input{margin-top:4px;width:18px;height:18px;accent-color:var(--accent);flex:none}
+.pick>span{min-width:0;overflow-wrap:anywhere}
+.pick b{display:block;font-weight:600}
+.preview{padding:10px;border-radius:6px;background:var(--bg);font-size:15px;overflow-wrap:anywhere}
+.qr{display:block;width:100%;text-align:left;padding:10px;border:1px solid var(--ctl);border-radius:6px;background:var(--surface);cursor:pointer;overflow-wrap:anywhere}
+.qr:hover{background:var(--surface-2)}
+.qr b{display:block;font-weight:600}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(66px + env(safe-area-inset-bottom,0px));z-index:20;width:max-content;max-width:calc(100vw - 32px);display:flex;gap:12px;align-items:center;padding:10px 14px;border-radius:6px;background:var(--demo-bg);color:var(--demo-fg);font-size:15px}
+#toast button{background:none;border:0;color:inherit;font-weight:600;text-decoration:underline;cursor:pointer;min-height:32px}
+
+body[data-view="inbox"] #toast{bottom:calc(170px + env(safe-area-inset-bottom,0px))}
+@media (min-width:640px){.demobar .long{display:inline}.demobar .short{display:none}}
+@media (min-width:760px){
+  .shell{flex-direction:row}
+  #main{order:2}
+  .nav{order:1;width:176px;display:flex;flex-direction:column;border-top:0;border-right:1px solid var(--line);background:var(--bg);padding-block:12px;padding-left:env(safe-area-inset-left,0px);padding-right:0}
+  .nav-brand{display:block;padding:4px 16px 14px;font:600 18px/1.15 var(--font-num)}
+  .nav-who{display:block;margin-top:auto;padding:12px 16px 4px;font-size:13px;color:var(--muted)}
+  .nav-item{text-align:left;padding:0 16px;font-size:16px;min-height:44px;display:flex;align-items:center;justify-content:space-between}
+  .nav-item[aria-current="page"]{background:var(--surface);box-shadow:inset 2px 0 0 var(--accent)}
+  .inbox{grid-template-columns:300px minmax(0,1fr)}
+  .inbox .pane-list{display:flex;border-right:1px solid var(--line)}
+  .inbox[data-pane="list"] .pane-chat{display:flex}
+  .lt760{display:none!important}
+  body:not([data-view="inbox"]) #toast{bottom:24px}
+}
+@media (min-width:1180px){
+  .inbox{grid-template-columns:320px minmax(0,1fr) 340px}
+  .inbox .pane-chat,.inbox .pane-details{display:flex}
+  .pane-details{border-left:1px solid var(--line)}
+  .lt1180{display:none!important}
+}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="demobar">
+    <p><span class="long">Demo with fake leads. Nothing is sent to anyone.</span><span class="short">Demo. Fake leads.</span></p>
+    <button type="button" data-act="role" id="roleBtn">Admin view</button>
+    <button type="button" data-act="reset">Reset</button>
+  </div>
+  <div class="shell">
+    <nav class="nav" id="nav" aria-label="Main"></nav>
+    <main id="main"></main>
+  </div>
+</div>
+<div id="toast" role="status" aria-live="polite" hidden></div>
+<dialog id="dlg" aria-labelledby="dlgT"></dialog>
+
+<script>
+(function(){
+'use strict';
+var MIN=6e4,HR=36e5,DAY=864e5;
+var STAGES=['New','Contacted','Test drive','Loan submitted','Loan approved','Booked','Delivered','Lost'];
+var LOST_REASONS=['Loan rejected','Bought another brand','Stopped replying','Price too high','Wrong person','Changed mind','Other'];
+var LOAN=['Not started','Documents pending','Submitted','Approved','Rejected'];
+var AGENT_WA='wa.me/60120000100';
+var CH={wa:'WhatsApp',tt:'TikTok'};
+var ORIGINS=['Showroom visit','Referral','Phone call','Ad','Social media','Other'];
+var LABEL={hot:'Hot',warm:'Warm',cold:'Cold'};
+var S,timers=[],uidN=0;
+
+function $(q,r){return (r||document).querySelector(q)}
+function $$(q,r){return Array.prototype.slice.call((r||document).querySelectorAll(q))}
+function uid(){uidN+=1;return 'x'+uidN}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function later(fn,ms){var t=setTimeout(fn,ms);timers.push(t);return t}
+function band(s){return s>=61?'hot':s>=41?'warm':'cold'}
+function wide(){return window.matchMedia('(min-width:760px)').matches}
+function touch(){return window.matchMedia('(pointer:coarse)').matches}
+
+/* ---------- Fake data ---------- */
+function makeLead(o){
+  var d={stage:'New',score:50,source:'AI',reason:'',next:'',hist:[],follow:[],unread:0,script:[],lostReason:'',scoring:false,origin:'Showroom visit',typed:{},
+    f:{car:'',budget:'',tradein:'',loan:'Not started',testdrive:'',booking:''}};
+  for(var k in o){if(k==='f'){for(var j in o.f)d.f[j]=o.f[j]}else d[k]=o[k]}
+  d.id=d.id||uid();d.replyOn=d.start;
+  return d;
+}
+function seedLeads(){
+  var n=Date.now();
+  function c(text,ago,ch){return {id:uid(),who:'c',ch:ch||'wa',text:text,t:n-ago}}
+  function a(text,ago,ch,more){var m={id:uid(),who:'a',ch:ch||'wa',text:text,t:n-ago,status:(ch==='tt'?'sent':'read')};for(var k in more)m[k]=more[k];return m}
+  function H(list){return list.map(function(p){return {t:n-p[0],score:p[1],src:p[2]||'AI'}})}
+  var wa=function(left){return {wa:{end:n+left,type:'24h'}}};
+  var tt=function(left,streak){return {tt:{end:n+left,streak:streak||0}}};
+  return [
+    makeLead({id:'tan',name:'Tan Wei Jie',contact:'+60 12-000 0155',start:'wa',ch:wa(20*HR),stage:'Test drive',score:71,unread:1,origin:'Showroom visit',
+      reason:'Test drive planned for Saturday, and asked about trade-in for a 2017 Vios.',next:'Ask for car photos and mileage, then confirm the slot.',
+      hist:H([[3*DAY,48],[DAY,60],[4*HR,71]]),f:{car:'S70 Flagship',tradein:'2017 Vios',testdrive:'Saturday 10am'},
+      follow:[{id:uid(),note:'Confirm Saturday test drive slot',due:n}],
+      msgs:[c('Hi, can I test drive the S70 this weekend?',DAY+2*HR),a('Sure Mr Tan. Saturday 10am or 2pm?',DAY+HR),c('10am ok. Can you also check the trade-in value for my 2017 Vios?',4*HR)],
+      script:[{text:'Mileage 98,000 km. Photos coming tonight.',score:76,reason:'Gave mileage for the trade-in and test drive is planned.',next:'Check the trade-in value and confirm Saturday.',f:{tradein:'2017 Vios, 98,000 km'}}]}),
+    makeLead({id:'kumar',name:'Kumar Raj',contact:'+60 12-000 0186',start:'wa',ch:wa(-6*HR),stage:'Loan approved',score:88,origin:'Referral',
+      reason:'Loan approved and asked how to pay the booking fee. Quiet for a day.',next:'Send a template and agree on the booking payment.',
+      hist:H([[8*DAY,62],[5*DAY,70],[2*DAY,81],[30*HR,90],[6*HR,88,'No reply']]),
+      f:{car:'X90 Flagship',budget:'RM1,500 a month',tradein:'2015 Exora',loan:'Approved',testdrive:'Done'},
+      follow:[{id:uid(),note:'Collect booking fee',due:n-DAY}],
+      msgs:[c('Loan dah lulus ke? Bank call saya tadi.',2*DAY),a('Ya, dah lulus. Tahniah Encik Kumar.',2*DAY-10*MIN),c('Ok. Booking fee macam mana?',30*HR),a('Booking fee boleh bayar di showroom atau transfer. Bila sesuai?',29*HR,'wa',{phone:true})],
+      script:[{text:'Sorry busy. Booking fee berapa? Esok saya transfer.',score:93,reason:'Will transfer the booking fee tomorrow.',next:'Send the booking fee amount and payment details.',f:{booking:'Will transfer tomorrow'}}]}),
+    makeLead({id:'siti',name:'Siti Hajar',contact:'@sitihajar.demo',start:'tt',ch:tt(-1*DAY,1),stage:'Contacted',score:18,origin:'Social media',
+      reason:'Stopped replying for 3 days.',next:'Wait. TikTok does not let you message first now.',
+      hist:H([[4*DAY,40],[3*DAY,34],[2*DAY,28,'No reply'],[DAY,23,'No reply'],[6*HR,18,'No reply']]),f:{car:'Saga Standard'},
+      msgs:[c('Saga paling murah berapa?',4*DAY,'tt'),a('Saga Standard paling rendah. Nak saya kira monthly?',4*DAY-HR,'tt'),c('Nanti saya tanya suami dulu.',3*DAY,'tt'),a('Baik. Kalau ada soalan, mesej saja.',3*DAY-HR,'tt')],
+      script:[{text:'Sorry lambat reply. Masih ada promo?',score:42,reason:'Came back after 3 days and asked about promo.',next:'Answer, then give your WhatsApp number while the window is open.'}]})
+  ];
+}
+/* New chats are not leads yet. No score and no AI until the agent picks Add to leads. */
+function seedChats(){
+  var n=Date.now();
+  function c(text,ago){return {id:uid(),who:'c',ch:'wa',text:text,t:n-ago}}
+  return [
+    {id:'farid',name:'Farid Ismail',contact:'+60 12-000 0197',ch:'wa',unread:1,msgs:[c('Salam bos, saya Farid yang datang showroom tadi. X50 tadi monthly berapa ye?',25*MIN)],
+      ai:{score:55,reason:'Came to the showroom and asked the monthly price of the X50. No budget or timing yet.',next:'Send a monthly estimate and ask about the deposit.',f:{car:'X50'}},
+      script:[{text:'Deposit 10% boleh? Gaji saya around RM5k.',score:68,reason:'Gave a deposit plan and salary after the showroom visit.',next:'Confirm the deposit plan, then book a test drive.',f:{budget:'10% deposit, salary about RM5k'}}]},
+    {id:'kaklong',name:'Kak Long',contact:'+60 12-000 0240',ch:'wa',unread:1,msgs:[c('Adik, minggu ni balik kampung tak? Mak tanya.',50*MIN)],
+      ai:{score:5,reason:'Not about a car.',next:'Move to Personal if this is family or a friend.'},script:[]}
+  ];
+}
+function seedQuick(){return [
+  {id:uid(),name:'Your WhatsApp',text:'Senang sembang WhatsApp. Ni nombor saya: '+AGENT_WA},
+  {id:uid(),name:'Test drive',text:'Boleh test drive. Hari dan masa apa yang sesuai?'},
+  {id:uid(),name:'Loan documents',text:'Untuk loan, saya perlukan salinan IC, payslip 3 bulan terkini dan penyata bank 3 bulan.'},
+  {id:uid(),name:'Trade-in',text:'Untuk nilai trade-in, boleh hantar gambar kereta, tahun dan mileage?'},
+  {id:uid(),name:'Showroom hours',text:'Showroom buka 9 pagi hingga 6 petang. Nak datang hari apa?'}
+]}
+function seedTemplates(){return [
+  {id:uid(),name:'Follow up test drive',cat:'Utility',status:'Approved',text:'Hi {{name}}, saya Aiman. Nak teruskan test drive {{car}} minggu ni? Balas mesej ini, saya aturkan.'},
+  {id:uid(),name:'Loan update',cat:'Utility',status:'Approved',text:'Hi {{name}}, ada update tentang loan {{car}} anda. Boleh balas mesej ini untuk saya terangkan?'},
+  {id:uid(),name:'Booking reminder',cat:'Utility',status:'Approved',text:'Hi {{name}}, untuk teruskan booking {{car}}, boleh balas mesej ini?'},
+  {id:uid(),name:'Promo this month',cat:'Marketing',status:'Approved',text:'Hi {{name}}, ada promosi {{car}} bulan ini. Balas YA untuk maklumat lanjut.'},
+  {id:uid(),name:'New price list',cat:'Marketing',status:'Waiting for Meta',text:'Hi {{name}}, harga baru {{car}} dah keluar. Balas YA untuk terima senarai harga.'}
+]}
+function seedAgents(){return [
+  {name:'Aiman (demo)',ver:'1.4.0',wa:'Connected',tt:'Connected',msgs:1284,scores:312,last:'Today'},
+  {name:'Jess Tan (demo)',ver:'1.4.0',wa:'Connected',tt:'Waiting for TikTok',msgs:846,scores:205,last:'Today'},
+  {name:'Ravi Kumar (demo)',ver:'1.3.2',wa:'Connected',tt:'Connected',msgs:1530,scores:404,last:'Yesterday',issue:'Update failed. Still on 1.3.2.'},
+  {name:'Farah Idris (demo)',ver:'1.4.0',wa:'Dropped',tt:'Not used',msgs:97,scores:22,last:'15 days ago',issue:'WhatsApp dropped. Phone inactive for 15 days.'}
+]}
+function fresh(){return {role:'agent',view:'today',leadId:null,chatId:null,pane:'list',from:'inbox',inboxFilter:'open',q:'',stage:null,fInterest:'all',fChannel:'all',adminFilter:'all',drafts:{},editScore:false,scrollChat:false,focus:null,
+  leads:seedLeads(),chats:seedChats(),personal:[],quick:seedQuick(),templates:seedTemplates(),agents:seedAgents()}}
+
+/* ---------- Helpers on leads ---------- */
+function lead(id){return S.leads.filter(function(l){return l.id===id})[0]}
+function cur(){return lead(S.leadId)}
+function chat(id){return S.chats.filter(function(c){return c.id===id})[0]}
+function isClosed(l){return l.stage==='Delivered'||l.stage==='Lost'}
+function openLeads(){return S.leads.filter(function(l){return !isClosed(l)})}
+function lastMsg(l){return l.msgs[l.msgs.length-1]}
+function isWaiting(l){return !isClosed(l)&&lastMsg(l).who==='c'}
+function nextStage(l){var i=STAGES.indexOf(l.stage);return i>=0&&i<6?STAGES[i+1]:null}
+function chLabel(l){return CH[l.start]}
+function winLeft(l,ch){return l.ch[ch||l.replyOn].end-Date.now()}
+function leftStr(ms){var d=Math.floor(ms/DAY),h=Math.floor(ms/HR),m=Math.floor(ms%HR/MIN);if(h>=48)return d+'d '+(h-d*24)+'h';if(h>=1)return h+'h '+m+'m';return Math.max(m,1)+'m'}
+function agoStr(t){var ms=Date.now()-t;if(ms<MIN)return 'now';if(ms<HR)return Math.floor(ms/MIN)+'m';if(ms<DAY)return Math.floor(ms/HR)+'h';return Math.floor(ms/DAY)+'d'}
+function clock(t){return new Date(t).toLocaleTimeString('en-MY',{hour:'numeric',minute:'2-digit'})}
+function startOfDay(t){var d=new Date(t);d.setHours(0,0,0,0);return d.getTime()}
+function dayStr(t){var diff=Math.round((startOfDay(Date.now())-startOfDay(t))/DAY);if(diff===0)return 'Today';if(diff===1)return 'Yesterday';return new Date(t).toLocaleDateString('en-MY',{day:'numeric',month:'short'})}
+function dueStr(t){var diff=Math.round((startOfDay(t)-startOfDay(Date.now()))/DAY);if(diff<0)return {t:'Overdue '+(-diff)+(diff===-1?' day':' days'),c:'t-late'};if(diff===0)return {t:'Due today',c:'t-soon'};if(diff===1)return {t:'Tomorrow',c:''};return {t:'In '+diff+' days',c:''}}
+function statusStr(m){return {sending:'Sending',sent:'Sent',delivered:'Delivered',read:'Read',failed:'Failed'}[m.status]||''}
+function fillTpl(t,l){return t.text.replace(/\{\{name\}\}/g,l.name.split(' ')[0]).replace(/\{\{car\}\}/g,l.f.car||'kereta')}
+function carLine(l){return (l.f.car||'Car not known yet')+' · '+l.stage}
+function count(n,one,many){return '<span class="num">'+n+'</span> '+(n===1?one:many)}
+
+/* ---------- Shared pieces ---------- */
+function chip(l){
+  if(l.stage==='Delivered')return '<span class="score won"><b>Won</b></span>';
+  if(l.stage==='Lost')return '<span class="score lost"><b>Lost</b></span>';
+  if(l.score==null)return '<span class="score isnew"><b>--</b><span>Reading</span></span>';
+  var b=band(l.score);
+  return '<span class="score '+b+'"><b>'+l.score+'%</b><span>'+(l.scoring?'Reading':LABEL[b])+'</span></span>';
+}
+function row(l,note,extra){
+  return '<li class="row"><button type="button" class="row-main" data-act="open" data-id="'+esc(l.id)+'">'+chip(l)+
+    '<span class="row-text"><span class="row-top"><span class="row-name">'+esc(l.name)+'</span><span class="row-ch">'+chLabel(l)+'</span></span>'+
+    '<span class="row-sub">'+esc(carLine(l))+'</span>'+note+'</span></button>'+(extra||'')+'</li>';
+}
+function winPhrase(l){
+  var left=winLeft(l);
+  if(left<=0)return '<span class="t-late">Window closed</span>';
+  return 'Window <span class="num '+(left<=6*HR?'t-soon':'')+'" data-win="'+esc(l.id)+'">'+leftStr(left)+'</span> left';
+}
+function section(title,count,body){
+  return '<section><h2 class="sec-title"><span>'+esc(title)+'</span><span class="num">'+count+'</span></h2>'+body+'</section>';
+}
+
+function newRow(c){
+  var m=c.msgs[c.msgs.length-1],un=c.unread>0;
+  return '<li class="row'+(un?' unread':'')+'"><button type="button" class="row-main" data-act="openNew" data-id="'+esc(c.id)+'"'+(c.id===S.chatId?' aria-current="true"':'')+'><span class="score isnew"><b>New</b></span>'+
+    '<span class="row-text"><span class="row-top"><span class="row-name">'+esc(c.name)+'</span><span class="row-ch num">'+agoStr(m.t)+'</span></span>'+
+    '<span class="row-sub">'+CH[c.ch]+'</span>'+
+    '<span class="row-snip">'+(un?'<span class="dot" aria-label="Unread"></span>':'')+esc(m.text)+'</span></span></button></li>';
+}
+
+/* ---------- Today ---------- */
+function viewToday(){
+  var open=openLeads();
+  var wait=open.filter(isWaiting).sort(function(a,b){return b.score-a.score});
+  var closing=open.filter(function(l){var left=winLeft(l);return !isWaiting(l)&&left>0&&left<=6*HR}).sort(function(a,b){return winLeft(a)-winLeft(b)});
+  var end=startOfDay(Date.now())+DAY,fu=[];
+  open.forEach(function(l){l.follow.forEach(function(x){if(x.due<end)fu.push({l:l,x:x})})});
+  fu.sort(function(a,b){return a.x.due-b.x.due});
+  var top=open.slice().sort(function(a,b){return b.score-a.score}).slice(0,5);
+  var date=new Date().toLocaleDateString('en-MY',{weekday:'long',day:'numeric',month:'long'});
+  var newHtml=S.chats.length?'<ul class="list">'+S.chats.map(function(c){return newRow(c)}).join('')+'</ul>':'<p class="empty">No new chats. A chat shows here when someone writes to you.</p>';
+  var waitHtml=wait.length?'<ul class="list">'+wait.map(function(l){
+      return row(l,'<span class="row-note">Waiting '+agoStr(lastMsg(l).t)+' · '+winPhrase(l)+'</span>');
+    }).join('')+'</ul>':'<p class="empty">Nobody is waiting. All replied.</p>';
+  var closingHtml=closing.length?'<ul class="list">'+closing.map(function(l){
+      return row(l,'<span class="row-note">Closes in <span class="num t-soon" data-win="'+esc(l.id)+'">'+leftStr(winLeft(l))+'</span>. '+esc(l.next)+'</span>');
+    }).join('')+'</ul>':'<p class="empty">No reply window closes in the next 6 hours.</p>';
+  var fuHtml=fu.length?'<ul class="list">'+fu.map(function(o){
+      var d=dueStr(o.x.due);
+      return row(o.l,'<span class="row-note">'+esc(o.x.note)+'</span><span class="row-sub '+d.c+'">'+d.t+'</span>',
+        '<button type="button" class="btn btn-small row-act" data-act="fuDone" data-id="'+esc(o.l.id)+'" data-fu="'+esc(o.x.id)+'" aria-label="Mark done: '+esc(o.x.note)+'">Done</button>');
+    }).join('')+'</ul>':'<p class="empty">No follow-ups due today.</p>';
+  var topHtml=top.length?'<ul class="list">'+top.map(function(l){
+      return row(l,'<span class="row-note">'+esc(l.reason)+'</span>');
+    }).join('')+'</ul>':'<p class="empty">No open leads yet.</p>';
+  return '<div class="head"><h1 id="viewTitle" tabindex="-1">Today</h1><p>'+esc(date)+'. '+count(S.chats.length,'new chat','new chats')+', '+count(wait.length,'waiting','waiting')+', '+count(closing.length,'closing soon','closing soon')+', '+count(fu.length,'follow-up due','follow-ups due')+'.</p></div>'+
+    '<div class="today-grid"><div class="today-col">'+section('New chats: lead or personal?',S.chats.length,newHtml)+section('Reply now',wait.length,waitHtml)+section('Reply window closing',closing.length,closingHtml)+'</div>'+
+    '<div class="today-col">'+section('Follow-ups due',fu.length,fuHtml)+section('Top leads',top.length,topHtml)+'</div></div>';
+}
+
+/* ---------- Inbox ---------- */
+function inboxList(){
+  var q=S.q.trim().toLowerCase();
+  var list=S.leads.filter(function(l){
+    var f=S.inboxFilter,ok;
+    if(f==='closed')ok=isClosed(l);
+    else if(f==='waiting')ok=isWaiting(l);
+    else if(f==='wa')ok=!isClosed(l)&&!!l.ch.wa;
+    else if(f==='tt')ok=!isClosed(l)&&!!l.ch.tt;
+    else ok=!isClosed(l);
+    if(ok&&q)ok=(l.name+' '+l.contact+' '+l.f.car).toLowerCase().indexOf(q)>=0;
+    return ok;
+  }).sort(function(a,b){return lastMsg(b).t-lastMsg(a).t});
+  return list;
+}
+function inboxNew(){
+  var f=S.inboxFilter,q=S.q.trim().toLowerCase();
+  if(f==='waiting'||f==='closed')return [];
+  return S.chats.filter(function(c){
+    if((f==='wa'||f==='tt')&&c.ch!==f)return false;
+    return !q||(c.name+' '+c.contact).toLowerCase().indexOf(q)>=0;
+  });
+}
+function convHtml(list){
+  var nw=inboxNew();
+  if(!list.length&&!nw.length)return '<p class="empty">No chats match. <button type="button" class="link" data-act="clearSearch">Show all open chats</button></p>';
+  var rows=list.map(function(l){
+    var m=lastMsg(l),un=l.unread>0;
+    return '<li class="row'+(un?' unread':'')+'"><button type="button" class="row-main" data-act="open" data-id="'+esc(l.id)+'"'+(l.id===S.leadId?' aria-current="true"':'')+'>'+chip(l)+
+      '<span class="row-text"><span class="row-top"><span class="row-name">'+esc(l.name)+'</span><span class="row-ch num">'+agoStr(m.t)+'</span></span>'+
+      '<span class="row-sub">'+chLabel(l)+(l.f.car?' · '+esc(l.f.car):'')+'</span>'+
+      '<span class="row-snip">'+(un?'<span class="dot" aria-label="Unread"></span>':'')+(m.who==='a'?'You: ':'')+esc(m.text)+'</span></span></button></li>';
+  }).join('');
+  return (nw.length?'<h2 class="sec-title"><span>New chats</span><span class="num">'+nw.length+'</span></h2><ul>'+nw.map(function(c){return newRow(c)}).join('')+'</ul>':'')+
+    (nw.length&&list.length?'<h2 class="sec-title"><span>Leads</span><span class="num">'+list.length+'</span></h2>':'')+
+    (list.length?'<ul>'+rows+'</ul>':'');
+}
+function viewInbox(){
+  var list=inboxList(),nw=inboxNew();
+  if(wide()&&!S.leadId&&!S.chatId){
+    if(nw.length){S.chatId=nw[0].id;nw[0].unread=0}
+    else if(list.length){S.leadId=list[0].id;list[0].unread=0;S.scrollChat=true}
+  }
+  var filters=[['open','Open'],['waiting','Waiting'],['wa','WhatsApp'],['tt','TikTok'],['closed','Closed']];
+  var counts={open:openLeads().length+S.chats.length,waiting:openLeads().filter(isWaiting).length};
+  var l=cur(),c=S.chatId?chat(S.chatId):null;
+  return '<div class="inbox" data-pane="'+S.pane+'">'+
+    '<section class="pane pane-list" aria-label="Chats"><div class="list-tools"><h1 id="viewTitle" tabindex="-1">Inbox</h1>'+
+      '<label class="small" for="inboxSearch">Search name, number or car</label><input id="inboxSearch" type="search" value="'+esc(S.q)+'" autocomplete="off">'+
+      '<div class="chips" role="group" aria-label="Filter chats">'+filters.map(function(f){return '<button type="button" class="chip" data-act="inboxFilter" data-id="'+f[0]+'" aria-pressed="'+(S.inboxFilter===f[0])+'">'+f[1]+(counts[f[0]]!=null?' <span class="num">'+counts[f[0]]+'</span>':'')+'</button>'}).join('')+'</div></div>'+
+      '<div class="conv" id="convList">'+convHtml(list)+'</div></section>'+
+    '<section class="pane pane-chat" aria-label="Chat">'+(c?newChatHtml(c):l?chatHtml(l):'<p class="empty">Pick a chat from the list.</p>')+'</section>'+
+    '<section class="pane pane-details" aria-label="Lead details">'+(c?newDetailsHtml(c):l?detailsHtml(l):'<p class="empty">Pick a chat to see the lead.</p>')+'</section></div>';
+}
+function winBar(l){
+  var left=winLeft(l),ch=l.replyOn,c=l.ch[ch];
+  var cls=left<=0?'closed':left<=6*HR?'soon':'';
+  var t;
+  if(left<=0){
+    t=ch==='wa'?'WhatsApp reply window closed. You can only send a paid template. It opens again when the customer replies.':'TikTok reply window closed. You cannot message first on TikTok. It opens again when the customer writes to you.';
+  }else{
+    var when='<span class="num" data-win="'+esc(l.id)+'">'+leftStr(left)+'</span> left';
+    if(ch==='wa')t=(c.type==='ad'?'Ad reply window: '+when+'. Started from a Click-to-WhatsApp ad.':'WhatsApp reply window: '+when+'.');
+    else t='TikTok reply window: '+when+'. <span class="num">'+c.streak+'</span> of 10 messages in a row.';
+  }
+  return '<div class="winbar '+cls+'">'+t+'</div>';
+}
+function msgsHtml(l){
+  var out='',lastDay='';
+  l.msgs.forEach(function(m){
+    var d=dayStr(m.t);
+    if(d!==lastDay){out+='<div class="msg-day">'+esc(d)+'</div>';lastDay=d}
+    var meta='<span class="num">'+clock(m.t)+'</span>';
+    if(m.who==='a'){
+      if(m.kind==='template')meta='<span class="msg-tag">Template</span>'+meta;
+      if(m.phone)meta='<span>Sent from phone app</span>'+meta;
+      meta+='<span data-mstat="'+esc(m.id)+'">'+statusStr(m)+'</span>';
+    }
+    out+='<div class="msg '+m.who+'"><div>'+esc(m.text)+'</div><div class="msg-meta">'+meta+'</div></div>';
+  });
+  return out;
+}
+function composerHtml(l){
+  var ch=l.replyOn,c=l.ch[ch],open=winLeft(l)>0,blockStreak=ch==='tt'&&c.streak>=10,draft=S.drafts[l.id]||'';
+  var tools='';
+  var demo=isClosed(l)?'':'<button type="button" class="btn btn-small btn-demo" data-act="demoReply">Demo: customer replies</button>';
+  if(!open&&ch==='wa'){
+    return '<div class="composer"><div class="tools">'+demo+'</div><button type="button" class="btn btn-primary" data-act="tplOpen">Send a template</button></div>';
+  }
+  if(!open||blockStreak){
+    var why=blockStreak?'You sent 10 messages in a row. TikTok allows no more until the customer replies.':'Sending is blocked. TikTok does not let you message first after the window closes.';
+    return '<div class="composer"><div class="tools">'+demo+'</div><p class="blocked">'+why+'</p></div>';
+  }
+  tools+='<button type="button" class="btn btn-small" data-act="quickOpen">Quick replies</button>';
+  if(ch==='tt')tools+='<button type="button" class="btn btn-small" data-act="shareWa">Give WhatsApp number</button>';
+  return '<div class="composer"><div class="tools">'+tools+demo+'</div>'+
+    '<div class="write"><textarea id="composer" rows="2" aria-label="Reply on '+CH[ch]+'" placeholder="Reply on '+CH[ch]+'">'+esc(draft)+'</textarea>'+
+    '<button type="button" class="btn btn-primary" id="sendBtn" data-act="send"'+(draft.trim()?'':' disabled')+'>Send</button></div></div>';
+}
+function chatHtml(l){
+  var note;
+  if(l.scoring)note='AI is reading the chat.';
+  else note='<span class="lbl">Next:</span> '+esc(l.next);
+  return '<header class="chat-head"><button type="button" class="btn btn-small lt760" data-act="chatBack">Back</button>'+
+    '<div class="chat-id"><h2 id="chatTitle" tabindex="-1">'+esc(l.name)+'</h2><p>'+esc(l.contact)+' · '+chLabel(l)+'</p></div>'+
+    '<button type="button" class="btn btn-small lt1180" data-act="details">Lead details</button></header>'+
+    '<button type="button" class="strip lt1180" data-act="details">'+chip(l)+'<span class="t">'+note+'</span></button>'+
+    winBar(l)+'<div class="msgs" id="chatBody" tabindex="0" aria-label="Messages">'+msgsHtml(l)+'</div>'+composerHtml(l);
+}
+
+function newChatHtml(c){
+  return '<header class="chat-head"><button type="button" class="btn btn-small lt760" data-act="chatBack">Back</button>'+
+    '<div class="chat-id"><h2 id="chatTitle" tabindex="-1">'+esc(c.name)+'</h2><p>'+esc(c.contact)+' · '+CH[c.ch]+'</p></div></header>'+
+    '<div class="winbar">New chat. Not a lead yet, and AI has not read it.</div>'+
+    '<div class="msgs" id="chatBody" tabindex="0" aria-label="Messages">'+msgsHtml(c)+'</div>'+
+    '<div class="composer"><p class="lbl">Is this a car lead, or personal?</p><div class="form-row">'+
+    '<button type="button" class="btn btn-primary" data-act="addLead" data-id="'+esc(c.id)+'">Add to leads</button>'+
+    '<button type="button" class="btn" data-act="personal" data-id="'+esc(c.id)+'">Personal</button></div></div>';
+}
+function newDetailsHtml(c){
+  return '<div class="d-scroll" id="detailsBody"><div class="d-sec"><h3>Not a lead yet</h3><p>No score and no car details until you add this chat to leads. AI does not read it before that.</p></div>'+
+    '<div class="d-sec"><h3>Customer</h3><p>'+esc(c.contact)+'</p><p class="small">Wrote on '+CH[c.ch]+'.</p></div></div>';
+}
+
+/* ---------- Lead details ---------- */
+function spark(hist){
+  var W=300,H=78,L=6,R=6,T=16,B=8;
+  function ys(s){return T+(100-s)/100*(H-T-B)}
+  var t0=hist[0].t,t1=hist[hist.length-1].t;
+  function xs(t){return t1===t0?W/2:L+(t-t0)/(t1-t0)*(W-L-R)}
+  var pts=hist.map(function(p){return [xs(p.t),ys(p.score)]});
+  var line=pts.map(function(p,i){return (i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)}).join(' ');
+  var area=hist.length>1?line+' L'+pts[pts.length-1][0].toFixed(1)+' '+(H-B)+' L'+pts[0][0].toFixed(1)+' '+(H-B)+' Z':'';
+  var last=pts[pts.length-1],first=pts[0];
+  var hits=hist.map(function(p,i){return '<circle class="sp-hit" cx="'+pts[i][0].toFixed(1)+'" cy="'+pts[i][1].toFixed(1)+'" r="11"><title>'+p.score+'%, '+esc(p.src)+', '+esc(dayStr(p.t))+' '+clock(p.t)+'</title></circle>'}).join('');
+  function lab(p,val,anchor,cls){var y=p[1]-7;if(y<12)y=p[1]+15;return '<text class="sp-txt '+cls+'" x="'+p[0].toFixed(1)+'" y="'+y.toFixed(1)+'" text-anchor="'+anchor+'">'+val+'%</text>'}
+  return '<svg class="sp" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Score went from '+hist[0].score+'% to '+hist[hist.length-1].score+'%">'+
+    '<line class="sp-grid" x1="0" x2="'+W+'" y1="'+ys(61).toFixed(1)+'" y2="'+ys(61).toFixed(1)+'"/><line class="sp-grid" x1="0" x2="'+W+'" y1="'+ys(41).toFixed(1)+'" y2="'+ys(41).toFixed(1)+'"/>'+
+    (area?'<path class="sp-area" d="'+area+'"/>':'')+(hist.length>1?'<path class="sp-line" d="'+line+'"/>':'')+
+    '<circle class="sp-dot" cx="'+last[0].toFixed(1)+'" cy="'+last[1].toFixed(1)+'" r="5"/>'+
+    (hist.length>1?lab(first,hist[0].score,'start',''):'')+lab(last,hist[hist.length-1].score,hist.length>1?'end':'middle','end')+hits+'</svg>';
+}
+function interestSec(l){
+  if(isClosed(l)){
+    return '<div class="d-sec"><h3>Result</h3><div class="int-top">'+chip(l)+(l.stage==='Lost'?'<span>'+esc(l.lostReason)+'</span>':'<span>Car delivered</span>')+'</div></div>';
+  }
+  if(l.score==null)return '<div class="d-sec"><h3>Interest</h3><p class="note-busy">AI is reading the chat. In the real portal this starts about 10 minutes after the customer stops typing.</p></div>';
+  var b=band(l.score),src=l.source==='You'?'Set by you':l.hist.length&&l.hist[l.hist.length-1].src==='No reply'?'Lowered, no reply':'AI estimate';
+  var last=l.hist[l.hist.length-1];
+  var html='<div class="d-sec"><h3>Interest</h3>';
+  html+='<div class="int-top"><span class="int-num">'+l.score+'%</span><span class="int-lab '+b+'">'+LABEL[b]+'</span><span class="int-src">'+src+', '+agoStr(last.t)+' ago</span></div>';
+  html+='<div class="scale" aria-hidden="true"><i class="c"></i><i class="w"></i><i class="h"></i><em style="left:calc('+l.score+'% - 1.5px)"></em></div><div class="scale-lab" aria-hidden="true"><span>Cold</span><span>Warm</span><span>Hot</span></div>';
+  if(l.scoring)html+='<p class="note-busy">AI is reading the chat. In the real portal this starts about 10 minutes after the customer stops typing.</p>';
+  html+='<p><span class="lbl">Why:</span> '+esc(l.reason)+'</p><p><span class="lbl">Next step:</span> '+esc(l.next)+'</p>';
+  if(l.source==='You')html+='<p class="small">Your number stays until the next customer message.</p>';
+  html+=spark(l.hist);
+  html+='<details><summary>Score history ('+l.hist.length+')</summary><table class="hist"><thead><tr><th>When</th><th>Score</th><th>From</th></tr></thead><tbody>'+
+    l.hist.slice().reverse().map(function(h){return '<tr><td>'+esc(dayStr(h.t))+'</td><td class="num">'+h.score+'%</td><td>'+esc(h.src)+'</td></tr>'}).join('')+'</tbody></table></details>';
+  if(S.editScore){
+    html+='<div class="field"><label for="scoreInput">Your score, 0 to 100</label><input id="scoreInput" type="number" inputmode="numeric" min="0" max="100" value="'+l.score+'"></div>'+
+      '<p class="err" id="scoreErr" role="alert" hidden></p><div class="form-row"><button type="button" class="btn btn-primary" data-act="saveScore">Save score</button><button type="button" class="btn" data-act="cancelScore">Cancel</button></div>';
+  }else{
+    html+='<button type="button" class="btn" data-act="editScore">Change score</button>';
+  }
+  html+='<p class="small">Interest is an AI estimate, not a true chance of buying.</p></div>';
+  return html;
+}
+function carFields(p,l){
+  function text(id,label,val){return '<div class="field"><label for="'+p+id+'">'+label+'</label><input id="'+p+id+'" type="text" value="'+esc(val)+'"></div>'}
+  function sel(id,label,opts,val){return '<div class="field"><label for="'+p+id+'">'+label+'</label><select id="'+p+id+'">'+opts.map(function(s){return '<option'+(s===val?' selected':'')+'>'+esc(s)+'</option>'}).join('')+'</select></div>'}
+  return sel('Origin','Where from',ORIGINS,l.origin)+text('Car','Car wanted',l.f.car)+text('Budget','Budget',l.f.budget)+text('Trade','Trade-in',l.f.tradein)+
+    sel('Loan','Loan status',LOAN,l.f.loan)+text('Drive','Test drive date',l.f.testdrive)+text('Book','Booking fee',l.f.booking);
+}
+function readFields(p,root){
+  function v(id){return $('#'+p+id,root).value.trim()}
+  return {origin:v('Origin'),f:{car:v('Car'),budget:v('Budget'),tradein:v('Trade'),loan:v('Loan'),testdrive:v('Drive'),booking:v('Book')}};
+}
+function detailsHtml(l){
+  var nx=nextStage(l);
+  var stageOpts=STAGES.map(function(s){return '<option'+(s===l.stage?' selected':'')+'>'+s+'</option>'}).join('');
+  var fuList=l.follow.length?l.follow.slice().sort(function(a,b){return a.due-b.due}).map(function(x){var d=dueStr(x.due);
+    return '<div class="fu-item"><div><div>'+esc(x.note)+'</div><div class="small '+d.c+'">'+d.t+'</div></div><button type="button" class="btn btn-small" data-act="fuDone" data-id="'+esc(l.id)+'" data-fu="'+esc(x.id)+'" aria-label="Mark done: '+esc(x.note)+'">Done</button></div>'}).join(''):'<p class="small">No follow-ups set.</p>';
+  return '<div class="chat-head lt1180"><button type="button" class="btn btn-small" data-act="detailsBack">Back to chat</button><div class="chat-id"><h2>'+esc(l.name)+'</h2></div></div>'+
+    '<div class="d-scroll" id="detailsBody">'+interestSec(l)+
+    '<div class="d-sec"><h3>Stage</h3><div class="field"><label for="stageSel">Current stage</label><select id="stageSel">'+stageOpts+'</select></div>'+
+      '<div class="form-row">'+(nx?'<button type="button" class="btn btn-primary" data-act="moveNext" data-id="'+esc(l.id)+'">Move to '+esc(nx)+'</button>':'')+
+      (l.stage!=='Lost'?'<button type="button" class="btn btn-danger-quiet" data-act="markLost">Mark as lost</button>':'')+'</div></div>'+
+    '<div class="d-sec"><h3>Follow-ups</h3>'+fuList+
+      '<div class="field"><label for="fuNote">New follow-up</label><input id="fuNote" type="text" placeholder="Call about the deposit"></div>'+
+      '<div class="field"><label for="fuWhen">When</label><select id="fuWhen"><option value="0">Today</option><option value="1" selected>Tomorrow</option><option value="3">In 3 days</option><option value="7">In 1 week</option></select></div>'+
+      '<p class="err" id="fuErr" role="alert" hidden></p><button type="button" class="btn" data-act="fuAdd">Add follow-up</button></div>'+
+    '<div class="d-sec"><h3>Car and loan</h3><p class="small">Only you see this. The customer does not. AI only fills empty boxes, so what you type stays.</p>'+carFields('f',l)+
+      '<button type="button" class="btn" data-act="saveFields">Save details</button></div>'+
+    '<div class="d-sec"><h3>Customer</h3><p>'+esc(l.contact)+'</p><p class="small">Started on '+CH[l.start]+'.</p>'+
+      '<button type="button" class="btn btn-danger-quiet" data-act="leadPersonal">Move to Personal</button></div></div>';
+}
+
+/* ---------- Leads ---------- */
+function viewLeads(){
+  var list=S.leads.filter(function(l){
+    if(S.fChannel!=='all'&&!l.ch[S.fChannel])return false;
+    if(S.fInterest!=='all'&&(isClosed(l)||band(l.score)!==S.fInterest))return false;
+    return true;
+  });
+  function inStage(st){return list.filter(function(l){return l.stage===st}).sort(function(a,b){return b.score-a.score})}
+  if(!S.stage)S.stage=STAGES.filter(function(st){return inStage(st).length})[0]||'New';
+  var opt=function(v,t,cur){return '<option value="'+v+'"'+(v===cur?' selected':'')+'>'+t+'</option>'};
+  var chips=STAGES.map(function(st){return '<button type="button" class="chip" data-act="pickStage" data-id="'+esc(st)+'" aria-pressed="'+(S.stage===st)+'">'+esc(st)+' <span class="num">'+inStage(st).length+'</span></button>'}).join('');
+  var cols=STAGES.map(function(st){
+    var items=inStage(st);
+    var body=items.length?'<ul>'+items.map(function(l){
+      var nx=nextStage(l);
+      return '<li class="lead-item"><button type="button" class="row-main" data-act="open" data-id="'+esc(l.id)+'">'+chip(l)+
+        '<span class="row-text"><span class="row-name">'+esc(l.name)+'</span><span class="row-sub">'+esc(l.f.car||'Car not known yet')+'</span><span class="row-sub">'+chLabel(l)+'</span></span></button>'+
+        (nx?'<div class="lead-move"><button type="button" class="btn btn-small" data-act="moveNext" data-id="'+esc(l.id)+'">Move to '+esc(nx)+'</button></div>':
+          (l.stage==='Lost'?'<div class="lead-done">'+esc(l.lostReason)+'</div>':''))+'</li>';
+    }).join('')+'</ul>':'<p class="empty">No leads in this stage.</p>';
+    return '<section class="col'+(S.stage===st?' on':'')+'" aria-label="'+esc(st)+'"><h2 class="col-title"><span>'+esc(st)+'</span><span class="num">'+items.length+'</span></h2>'+body+'</section>';
+  }).join('');
+  return '<div class="head"><h1 id="viewTitle" tabindex="-1">Leads</h1><p>Every lead by stage. Open one to see the chat.</p></div>'+
+    '<div class="filters"><div class="field"><label for="fInterest">Interest</label><select id="fInterest">'+opt('all','All',S.fInterest)+opt('hot','Hot',S.fInterest)+opt('warm','Warm',S.fInterest)+opt('cold','Cold',S.fInterest)+'</select></div>'+
+    '<div class="field"><label for="fChannel">Channel</label><select id="fChannel">'+opt('all','All',S.fChannel)+opt('wa','WhatsApp',S.fChannel)+opt('tt','TikTok',S.fChannel)+'</select></div></div>'+
+    '<div class="chips stage-chips" role="group" aria-label="Pick a stage">'+chips+'</div><div class="board" id="boardWrap">'+cols+'</div>';
+}
+
+/* ---------- Reports: every number is counted from the leads in this mock ---------- */
+function bars(rows,noun){
+  var max=Math.max.apply(null,rows.map(function(r){return r[1]}).concat([1]));
+  return '<div class="bars">'+rows.map(function(r){
+    var w=(r[1]/max*100).toFixed(1);
+    return '<div class="bar-row" title="'+esc(r[0])+': '+r[1]+' '+noun+'"><span class="bar-lab">'+esc(r[0])+'</span><span class="bar-track">'+(r[1]?'<span class="bar" style="width:'+w+'%"></span>':'')+'</span><span class="bar-val">'+r[1]+'</span></div>';
+  }).join('')+'</div>';
+}
+function viewReports(){
+  var won=S.leads.filter(function(l){return l.stage==='Delivered'}),lost=S.leads.filter(function(l){return l.stage==='Lost'}),closed=won.length+lost.length;
+  var pct=closed?Math.round(won.length/closed*100):0;
+  var chan=['wa','tt'].map(function(k){return [CH[k],S.leads.filter(function(l){return l.start===k}).length]});
+  var reasons={};lost.forEach(function(l){var r=l.lostReason||'Other';reasons[r]=(reasons[r]||0)+1});
+  var rr=Object.keys(reasons).map(function(k){return [k,reasons[k]]}).sort(function(a,b){return b[1]-a[1]});
+  return '<div class="head"><h1 id="viewTitle" tabindex="-1">Reports</h1><p>Counted from the fake leads in this demo. Move a lead to Delivered or Lost and these change.</p></div>'+
+    '<div class="rep"><h2>Won vs lost</h2><p class="rep-sum">'+(closed?'<b>'+pct+'%</b> of closed leads were won.':'No closed leads yet.')+'</p>'+bars([['Won (delivered)',won.length],['Lost',lost.length]],'leads')+
+    '<h2>Leads by channel</h2><p class="rep-sum">Counted by where the lead started. <span class="num">'+S.leads.length+'</span> leads in total.</p>'+bars(chan,'leads')+
+    '<h2>Lost reasons</h2>'+(rr.length?bars(rr,'leads'):'<p class="empty">No lost leads yet.</p>')+'</div>';
+}
+
+/* ---------- Settings ---------- */
+function viewSettings(){
+  var qr=S.quick.map(function(q){return '<div class="set-row"><div><div class="lbl">'+esc(q.name)+'</div><div class="small">'+esc(q.text)+'</div></div><div class="set-acts"><button type="button" class="btn btn-small" data-act="qrEdit" data-id="'+esc(q.id)+'" aria-label="Edit '+esc(q.name)+'">Edit</button><button type="button" class="btn btn-small btn-danger-quiet" data-act="qrDel" data-id="'+esc(q.id)+'" aria-label="Delete '+esc(q.name)+'">Delete</button></div></div>'}).join('');
+  var tp=S.templates.map(function(t){
+    var cls=t.status==='Approved'?'good':'wait';
+    return '<div class="set-row"><div><div><span class="lbl">'+esc(t.name)+'</span> <span class="tag '+cls+'">'+esc(t.status)+'</span></div><div class="small">'+esc(t.cat)+'. '+esc(t.text)+'</div></div><div class="set-acts"><button type="button" class="btn btn-small btn-danger-quiet" data-act="tplDel" data-id="'+esc(t.id)+'" aria-label="Delete '+esc(t.name)+'">Delete</button></div></div>';
+  }).join('');
+  return '<div class="head"><h1 id="viewTitle" tabindex="-1">Settings</h1><p>Signed in as Aiman (demo agent).</p></div><div class="set">'+
+    '<h2>Connected channels</h2>'+
+    '<div class="set-row"><div><div class="lbl">WhatsApp</div><div class="small">+60 12-000 0100. Phone app active today. The link drops after about 14 days with no phone activity.</div></div><span class="tag good">Connected</span></div>'+
+    '<div class="set-row"><div><div class="lbl">TikTok</div><div class="small">@aiman.demo. You can only reply inside the TikTok reply window.</div></div><span class="tag good">Connected</span></div>'+
+    '<h2>While WhatsApp is connected</h2><p class="set-p">These stop working or do not show here:</p><ul class="set-list"><li>Broadcast lists stop. Old lists become read-only.</li><li>Group chats do not show in the portal.</li><li>Disappearing, view-once and live location messages are off or not supported.</li><li>Calls, catalog, orders and status stay on the phone app only.</li></ul>'+
+    '<h2>Personal contacts</h2><p class="set-p">Messages from these people do not show here and do not go to AI.</p>'+
+    (S.personal.length?S.personal.map(function(p){return '<div class="set-row"><div><div class="lbl">'+esc(p.name)+'</div><div class="small">'+esc(p.contact)+'</div></div><div class="set-acts"><button type="button" class="btn btn-small" data-act="personalRemove" data-id="'+esc(p.id)+'" aria-label="Remove '+esc(p.name)+' from Personal">Remove</button></div></div>'}).join(''):'<p class="empty">Nobody yet. Tap Personal on a new chat to add someone.</p>')+
+    '<h2>Quick replies</h2>'+qr+'<div class="set-add"><button type="button" class="btn" data-act="qrAdd">Add quick reply</button></div>'+
+    '<h2>WhatsApp templates</h2><p class="set-p">Use these when the reply window is closed. New ones wait for Meta to approve them.</p>'+tp+'<div class="set-add"><button type="button" class="btn" data-act="tplAdd">Create template</button></div></div>';
+}
+
+/* ---------- Admin ---------- */
+function agentTag(v){
+  var c=v==='Connected'?'good':v==='Dropped'?'bad':v==='Not used'?'off':'wait';
+  return '<span class="tag '+c+'">'+esc(v)+'</span>';
+}
+function viewAdmin(){
+  var all=S.agents,need=all.filter(function(a){return !!a.issue});
+  var list=S.adminFilter==='need'?need:all;
+  return '<div class="head"><h1 id="viewTitle" tabindex="-1">Agent copies</h1><p>For you only. <span class="num">'+all.length+'</span> copies, <span class="num">'+need.length+'</span> need attention. Fake agents.</p></div>'+
+    '<div class="filters"><div class="chips" role="group" aria-label="Filter copies"><button type="button" class="chip" data-act="adminFilter" data-id="all" aria-pressed="'+(S.adminFilter==='all')+'">All</button><button type="button" class="chip" data-act="adminFilter" data-id="need" aria-pressed="'+(S.adminFilter==='need')+'">Needs attention</button></div></div>'+
+    '<div class="tbl-wrap" tabindex="0" aria-label="Agent copies table"><table class="tbl"><thead><tr><th>Agent</th><th>Version</th><th>WhatsApp</th><th>TikTok</th><th class="r">Messages this month</th><th class="r">AI scores this month</th><th>Last active</th></tr></thead><tbody>'+
+    list.map(function(a){return '<tr><td><div class="lbl">'+esc(a.name)+'</div>'+(a.issue?'<div class="issue">'+esc(a.issue)+'</div>':'')+'</td><td class="num">'+esc(a.ver)+'</td><td>'+agentTag(a.wa)+'</td><td>'+agentTag(a.tt)+'</td><td class="r">'+a.msgs.toLocaleString('en-MY')+'</td><td class="r">'+a.scores+'</td><td>'+esc(a.last)+'</td></tr>'}).join('')+
+    '</tbody></table></div>';
+}
+
+/* ---------- Render ---------- */
+var VIEWS={today:viewToday,inbox:viewInbox,leads:viewLeads,reports:viewReports,settings:viewSettings};
+var SCROLLERS=['main','chatBody','convList','detailsBody','boardWrap'];
+function renderNav(){
+  var nav=$('#nav');
+  if(S.role==='admin'){
+    nav.hidden=true;nav.style.display='none';return;
+  }
+  nav.hidden=false;nav.style.display='';
+  var waiting=openLeads().filter(isWaiting).length+S.chats.length;
+  nav.innerHTML='<div class="nav-brand">Car Agent Portal</div>'+[['today','Today'],['inbox','Inbox'],['leads','Leads'],['reports','Reports'],['settings','Settings']].map(function(n){
+    return '<button type="button" class="nav-item" data-act="nav" data-id="'+n[0]+'"'+(S.view===n[0]?' aria-current="page"':'')+'><span>'+n[1]+'</span>'+(n[0]==='inbox'&&waiting?'<span class="count" aria-label="'+waiting+' to answer">'+waiting+'</span>':'')+'</button>';
+  }).join('')+'<div class="nav-who">Aiman (demo agent)</div>';
+}
+function render(){
+  var a=document.activeElement,key=null;
+  if(a&&a!==document.body&&!$('#dlg').open){
+    if(a.id)key='#'+a.id;
+    else if(a.dataset&&a.dataset.act)key='[data-act="'+a.dataset.act+'"]'+(a.dataset.id?'[data-id="'+a.dataset.id+'"]':'');
+  }
+  var scroll={};SCROLLERS.forEach(function(id){var el=document.getElementById(id);if(el)scroll[id]=el.scrollTop});
+  var prevView=$('#main').dataset.view;
+  renderNav();
+  $('#roleBtn').textContent=S.role==='admin'?'Agent view':'Admin view';
+  var main=$('#main'),view=S.role==='admin'?'admin':S.view;
+  main.dataset.view=view;
+  document.body.dataset.view=view;
+  main.innerHTML=S.role==='admin'?viewAdmin():VIEWS[S.view]();
+  document.body.dataset.focus=(S.role==='agent'&&S.view==='inbox'&&S.pane!=='list')?'pane':'';
+  if(prevView===view){SCROLLERS.forEach(function(id){var el=document.getElementById(id);if(el&&scroll[id]!=null)el.scrollTop=scroll[id]})}
+  var body=$('#chatBody');
+  if(body&&S.scrollChat){body.scrollTop=body.scrollHeight;S.scrollChat=false}
+  var stageBar=$('.stage-chips'),stageOn=stageBar&&$('[aria-pressed="true"]',stageBar);
+  if(stageOn)stageBar.scrollLeft=stageOn.offsetLeft-stageBar.offsetLeft-16;
+  var target=null;
+  if(S.focus){target=document.getElementById(S.focus);S.focus=null}
+  else if(key){try{target=$(key)}catch(e){target=null}}
+  if(target){target.focus({preventScroll:true});if(target.id==='composer')target.setSelectionRange(target.value.length,target.value.length)}
+}
+function tick(){
+  var crossed=false;
+  $$('[data-win]').forEach(function(el){
+    var l=lead(el.dataset.win);if(!l)return;
+    var left=winLeft(l);
+    if(left<=0)crossed=true;else el.textContent=leftStr(left);
+  });
+  if(crossed)render();
+}
+
+/* ---------- Toast and dialog ---------- */
+var toastTimer=null;
+function toast(msg,undo){
+  var t=$('#toast');clearTimeout(toastTimer);
+  t.innerHTML='<span>'+esc(msg)+'</span>'+(undo?'<button type="button" id="toastUndo">Undo</button>':'');
+  t.hidden=false;
+  if(undo)$('#toastUndo').onclick=function(){undo();t.hidden=true;render()};
+  toastTimer=setTimeout(function(){t.hidden=true},undo?7000:3500);
+}
+function dlg(o){
+  var d=$('#dlg');
+  d.innerHTML='<form class="dlg" novalidate><h2 id="dlgT">'+esc(o.title)+'</h2><div class="dlg-body" tabindex="-1">'+o.body+'</div><p class="err" id="dlgErr" role="alert" hidden></p>'+
+    '<div class="dlg-foot"><button type="button" class="btn" id="dlgCancel">'+esc(o.cancel||'Cancel')+'</button>'+(o.ok?'<button type="submit" class="btn '+(o.danger?'btn-danger':'btn-primary')+'">'+esc(o.ok)+'</button>':'')+'</div></form>';
+  $('#dlgCancel',d).onclick=function(){d.close()};
+  $('form',d).onsubmit=function(e){
+    e.preventDefault();
+    var res=o.onOk?o.onOk(d):null;
+    if(typeof res==='string'){var er=$('#dlgErr',d);er.textContent=res;er.hidden=false;return}
+    d.close();
+  };
+  d.showModal();
+  ($('.dlg-body input,.dlg-body select,.dlg-body textarea,.dlg-body button',d)||$('#dlgCancel',d)).focus();
+  if(o.onOpen)o.onOpen(d);
+}
+
+/* ---------- Behaviour ---------- */
+function applyScore(l,r,src){
+  l.score=r.score;
+  if(r.reason)l.reason=r.reason;
+  if(r.next)l.next=r.next;
+  if(r.f){for(var k in r.f){if(!l.typed[k])l.f[k]=r.f[k]}}
+  l.source='AI';
+  l.hist.push({t:Date.now(),score:r.score,src:src||'AI'});
+}
+function setStatus(m,st){
+  m.status=st;
+  var el=document.querySelector('[data-mstat="'+m.id+'"]');
+  if(el)el.textContent=statusStr(m);
+}
+function advance(m){
+  later(function(){setStatus(m,'sent');
+    if(m.ch==='tt')return;
+    later(function(){setStatus(m,'delivered');
+      later(function(){setStatus(m,'read')},2600);
+    },900);
+  },600);
+}
+function customerReply(l){
+  var step=l.script.shift()||{text:'Ok noted, terima kasih.'};
+  var now=Date.now(),ch=l.replyOn,c=l.ch[ch];
+  l.msgs.push({id:uid(),who:'c',ch:ch,text:step.text,t:now});
+  if(ch==='wa'){if(!(c.type==='ad'&&c.end>now)){c.end=now+24*HR;c.type='24h'}}
+  else{c.end=now+48*HR;c.streak=0}
+  l.unread=(l.id===S.leadId&&S.view==='inbox')?0:l.unread+1;
+  l.scoring=true;
+  S.scrollChat=true;S.editScore=false;
+  render();
+  later(function(){
+    var old=l.score;
+    l.scoring=false;
+    if(step.score!=null)applyScore(l,step);else l.source='AI';
+    render();
+    toast(old===l.score?'Interest for '+l.name+' stays at '+l.score+'%':'Interest for '+l.name+': '+old+'% to '+l.score+'%');
+  },2000);
+}
+function moveStage(l,stage,reason){
+  var prev={stage:l.stage,lostReason:l.lostReason,reason:l.reason};
+  var wasClosed=isClosed(l);
+  l.stage=stage;l.lostReason=stage==='Lost'?reason:'';
+  if(stage==='Lost'||stage==='Delivered'){if(!wasClosed)l.openReason=l.reason;l.reason=stage==='Lost'?'Lost: '+reason+'.':'Car delivered.'}
+  else if(wasClosed&&l.openReason)l.reason=l.openReason;
+  S.stage=S.view==='leads'?S.stage:stage;
+  toast(l.name+' moved to '+stage,function(){l.stage=prev.stage;l.lostReason=prev.lostReason;l.reason=prev.reason});
+  render();
+}
+function askLost(l){
+  dlg({title:'Mark '+l.name+' as lost',ok:'Mark as lost',danger:true,
+    body:'<p>Reports count this reason.</p><div class="field"><label for="lostSel">Lost reason</label><select id="lostSel"><option value="">Pick a reason</option>'+LOST_REASONS.map(function(r){return '<option>'+r+'</option>'}).join('')+'</select></div>',
+    onOk:function(d){var v=$('#lostSel',d).value;if(!v)return 'Pick a lost reason first.';moveStage(l,'Lost',v)}
+  });
+}
+function addToLeads(c,name,v){
+  var last=c.msgs[c.msgs.length-1].t,chan={},typed={};
+  chan[c.ch]=c.ch==='wa'?{end:last+24*HR,type:'24h'}:{end:last+48*HR,streak:0};
+  for(var k in v.f){if(v.f[k]&&!(k==='loan'&&v.f[k]==='Not started'))typed[k]=true}
+  var l=makeLead({id:c.id,name:name,contact:c.contact,start:c.ch,ch:chan,score:null,scoring:true,origin:v.origin,f:v.f,typed:typed,msgs:c.msgs,script:c.script});
+  S.leads.push(l);
+  S.chats=S.chats.filter(function(x){return x!==c});
+  S.chatId=null;S.leadId=l.id;S.view='inbox';S.pane='chat';S.scrollChat=true;S.focus=wide()?null:'chatTitle';
+  render();
+  toast('Added to leads. AI is reading the chat.');
+  later(function(){l.scoring=false;applyScore(l,c.ai);render();toast('Interest for '+l.name+': '+l.score+'%')},2000);
+}
+
+var ACT={
+  nav:function(d){S.view=d.id;S.pane='list';S.focus='viewTitle';$('#toast').hidden=true;render();var m=$('#main');if(m)m.scrollTop=0},
+  role:function(){S.role=S.role==='admin'?'agent':'admin';S.focus='viewTitle';render()},
+  reset:function(){dlg({title:'Reset the demo?',body:'<p>This puts back all the fake leads and removes every change you made.</p>',ok:'Reset demo',danger:true,onOk:function(){
+    timers.forEach(clearTimeout);timers=[];S=fresh();$('#toast').hidden=true;S.focus='viewTitle';render();toast('Demo reset.');
+  }})},
+  open:function(d){
+    var l=lead(d.id);if(!l)return;
+    S.from=S.view;S.view='inbox';S.leadId=d.id;S.chatId=null;S.pane='chat';S.editScore=false;l.unread=0;S.scrollChat=true;S.focus=wide()?null:'chatTitle';render();
+  },
+  openNew:function(d){
+    var c=chat(d.id);if(!c)return;
+    S.from=S.view;S.view='inbox';S.chatId=d.id;S.leadId=null;S.pane='chat';c.unread=0;S.scrollChat=true;S.focus=wide()?null:'chatTitle';render();
+  },
+  chatBack:function(){if(S.from!=='inbox')S.view=S.from;S.pane='list';S.focus='viewTitle';render()},
+  details:function(){S.pane='details';render();var b=$('#detailsBody');if(b)b.scrollTop=0;var bb=$('[data-act="detailsBack"]');if(bb)bb.focus({preventScroll:true})},
+  detailsBack:function(){S.pane='chat';S.scrollChat=true;S.focus='chatTitle';render()},
+  inboxFilter:function(d){S.inboxFilter=d.id;if(wide()){S.leadId=null;S.chatId=null}render()},
+  clearSearch:function(){S.q='';S.inboxFilter='open';render()},
+  send:function(){
+    var l=cur(),ta=$('#composer');if(!ta)return;
+    var text=ta.value.trim();if(!text)return;
+    var m={id:uid(),who:'a',ch:l.replyOn,text:text,t:Date.now(),status:'sending'};
+    l.msgs.push(m);S.drafts[l.id]='';
+    if(l.replyOn==='tt')l.ch.tt.streak+=1;
+    S.scrollChat=true;S.focus='composer';render();advance(m);
+  },
+  demoReply:function(){var l=cur();if(!l.scoring)customerReply(l)},
+  quickOpen:function(){
+    dlg({title:'Quick replies',cancel:'Close',body:S.quick.length?S.quick.map(function(q){return '<button type="button" class="qr" data-act="useQuick" data-id="'+esc(q.id)+'"><b>'+esc(q.name)+'</b>'+esc(q.text)+'</button>'}).join(''):'<p>No quick replies yet. Add them in Settings.</p>'});
+  },
+  useQuick:function(d){
+    var q=S.quick.filter(function(x){return x.id===d.id})[0],l=cur();if(!q)return;
+    var was=S.drafts[l.id]||'';S.drafts[l.id]=was?was+' '+q.text:q.text;
+    $('#dlg').close();S.focus='composer';render();
+  },
+  shareWa:function(){
+    var l=cur(),t='Senang sembang WhatsApp. Ni nombor saya: '+AGENT_WA;
+    var was=S.drafts[l.id]||'';S.drafts[l.id]=was?was+' '+t:t;S.focus='composer';render();
+  },
+  tplOpen:function(){
+    var l=cur(),ok=S.templates.filter(function(t){return t.status==='Approved'});
+    if(!ok.length){dlg({title:'No approved templates',cancel:'Close',body:'<p>Create one in Settings and wait for Meta to approve it.</p>'});return}
+    var picks=ok.map(function(t,i){
+      return '<label class="pick"><input type="radio" name="tpl" value="'+esc(t.id)+'"'+(i===0?' checked':'')+'><span><b>'+esc(t.name)+'</b><span class="small">'+esc(t.cat)+', about '+(t.cat==='Marketing'?'RM0.35':'RM0.06')+' per message</span></span></label>';
+    }).join('');
+    dlg({title:'Send a template to '+l.name,ok:'Send template',
+      body:'<p class="small">Paid message. The rate is not confirmed yet.</p>'+picks+'<div class="preview" id="tplPrev"></div><p class="small" id="tplNote" hidden>Marketing: the customer must have agreed to marketing messages.</p>',
+      onOpen:function(d){
+        function upd(){var v=$('input[name=tpl]:checked',d).value,t=ok.filter(function(x){return x.id===v})[0];$('#tplPrev',d).textContent=fillTpl(t,l);$('#tplNote',d).hidden=t.cat!=='Marketing'}
+        $$('input[name=tpl]',d).forEach(function(i){i.addEventListener('change',upd)});upd();
+      },
+      onOk:function(d){
+        var v=$('input[name=tpl]:checked',d).value,t=ok.filter(function(x){return x.id===v})[0];
+        var m={id:uid(),who:'a',ch:'wa',text:fillTpl(t,l),t:Date.now(),status:'sending',kind:'template'};
+        l.msgs.push(m);S.scrollChat=true;render();advance(m);toast('Template sent. The window opens when the customer replies.');
+      }});
+  },
+  moveNext:function(d){var l=lead(d.id||S.leadId),nx=nextStage(l);if(nx)moveStage(l,nx,'')},
+  markLost:function(){askLost(cur())},
+  pickStage:function(d){S.stage=d.id;render()},
+  adminFilter:function(d){S.adminFilter=d.id;render()},
+  editScore:function(){S.editScore=true;S.focus='scoreInput';render()},
+  cancelScore:function(){S.editScore=false;render()},
+  saveScore:function(){
+    var l=cur(),raw=$('#scoreInput').value.trim(),v=Number(raw),er=$('#scoreErr');
+    if(raw===''||!Number.isInteger(v)||v<0||v>100){er.textContent='Enter a whole number from 0 to 100.';er.hidden=false;$('#scoreInput').focus();return}
+    l.score=v;l.source='You';l.hist.push({t:Date.now(),score:v,src:'You'});S.editScore=false;render();toast('Score set to '+v+'%.');
+  },
+  fuDone:function(d){
+    var l=lead(d.id),x=l.follow.filter(function(y){return y.id===d.fu})[0];if(!x)return;
+    l.follow=l.follow.filter(function(y){return y!==x});
+    toast('Follow-up done.',function(){l.follow.push(x)});render();
+  },
+  fuAdd:function(){
+    var l=cur(),n=$('#fuNote').value.trim(),w=Number($('#fuWhen').value),er=$('#fuErr');
+    if(!n){er.textContent='Write what the follow-up is for.';er.hidden=false;$('#fuNote').focus();return}
+    l.follow.push({id:uid(),note:n,due:Date.now()+w*DAY});toast('Follow-up added.');render();
+  },
+  saveFields:function(){
+    var l=cur(),v=readFields('f',document);
+    for(var k in v.f){
+      if(v.f[k]!==l.f[k]){if(v.f[k]&&!(k==='loan'&&v.f[k]==='Not started'))l.typed[k]=true;else delete l.typed[k]}
+      l.f[k]=v.f[k];
+    }
+    l.origin=v.origin;
+    toast('Details saved.');render();
+  },
+  addLead:function(d){
+    var c=chat(d.id);if(!c)return;
+    dlg({title:'Add '+c.name+' to leads',ok:'Save lead',
+      body:'<p class="small">Saved on this lead only. The customer does not see it. You can change it anytime.</p>'+
+        '<div class="car-grid"><div class="field"><label for="aName">Customer name</label><input id="aName" type="text" value="'+esc(c.name)+'"></div>'+
+        carFields('a',{origin:'Showroom visit',f:{car:'',budget:'',tradein:'',loan:'Not started',testdrive:'',booking:''}})+'</div>',
+      onOk:function(box){
+        var name=$('#aName',box).value.trim();if(!name)return 'Write the customer name.';
+        addToLeads(c,name,readFields('a',box));
+      }});
+  },
+  personal:function(d){
+    var c=chat(d.id);if(!c)return;
+    var at=S.chats.indexOf(c),prev={view:S.view,pane:S.pane};
+    S.chats.splice(at,1);S.personal.push({id:c.id,name:c.name,contact:c.contact});
+    S.chatId=null;S.pane='list';S.focus='viewTitle';
+    if(!wide()&&S.from!=='inbox')S.view=S.from;
+    render();
+    toast(c.name+' moved to Personal. Their messages will not show here.',function(){
+      S.personal=S.personal.filter(function(p){return p.id!==c.id});
+      S.chats.splice(at,0,c);S.view=prev.view;S.pane=prev.pane;S.chatId=c.id;S.leadId=null;
+    });
+  },
+  leadPersonal:function(){
+    var l=cur();
+    dlg({title:'Move '+l.name+' to Personal?',ok:'Move to Personal',danger:true,
+      body:'<p>This removes the lead, its chat and its car details from the portal. Their messages will not show here again.</p>',
+      onOk:function(){
+        S.leads=S.leads.filter(function(x){return x!==l});S.personal.push({id:l.id,name:l.name,contact:l.contact});
+        S.leadId=null;S.pane='list';S.view='inbox';S.focus='viewTitle';render();toast(l.name+' moved to Personal.');
+      }});
+  },
+  personalRemove:function(d){
+    var p=S.personal.filter(function(x){return x.id===d.id})[0];if(!p)return;
+    S.personal=S.personal.filter(function(x){return x!==p});render();
+    toast(p.name+' removed. Their next message shows as a new chat.',function(){S.personal.push(p)});
+  },
+  qrAdd:function(){qrForm()},
+  qrEdit:function(d){qrForm(S.quick.filter(function(q){return q.id===d.id})[0])},
+  qrDel:function(d){
+    var q=S.quick.filter(function(x){return x.id===d.id})[0];
+    dlg({title:'Delete "'+q.name+'"?',body:'<p>This quick reply will be removed.</p>',ok:'Delete',danger:true,onOk:function(){S.quick=S.quick.filter(function(x){return x!==q});render();toast('Quick reply deleted.')}});
+  },
+  tplAdd:function(){
+    dlg({title:'Create template',ok:'Send to Meta for review',
+      body:'<div class="field"><label for="tName">Name</label><input id="tName" type="text"></div><div class="field"><label for="tCat">Category</label><select id="tCat"><option>Utility</option><option>Marketing</option></select></div><div class="field"><label for="tText">Message</label><textarea id="tText" rows="3"></textarea></div><p class="small">Use {{name}} and {{car}} for the customer name and car.</p>',
+      onOk:function(d){
+        var n=$('#tName',d).value.trim(),t=$('#tText',d).value.trim();
+        if(!n)return 'Give the template a name.';if(!t)return 'Write the template message.';
+        S.templates.push({id:uid(),name:n,cat:$('#tCat',d).value,status:'Waiting for Meta',text:t});render();toast('Template saved. In this demo it stays waiting for Meta.');
+      }});
+  },
+  tplDel:function(d){
+    var t=S.templates.filter(function(x){return x.id===d.id})[0];
+    dlg({title:'Delete "'+t.name+'"?',body:'<p>Agents can no longer send this template.</p>',ok:'Delete',danger:true,onOk:function(){S.templates=S.templates.filter(function(x){return x!==t});render();toast('Template deleted.')}});
+  }
+};
+function qrForm(q){
+  dlg({title:q?'Edit quick reply':'Add quick reply',ok:'Save',
+    body:'<div class="field"><label for="qName">Name</label><input id="qName" type="text" value="'+esc(q?q.name:'')+'"></div><div class="field"><label for="qText">Message</label><textarea id="qText" rows="3">'+esc(q?q.text:'')+'</textarea></div>',
+    onOk:function(d){
+      var n=$('#qName',d).value.trim(),t=$('#qText',d).value.trim();
+      if(!n)return 'Give the quick reply a name.';if(!t)return 'Write the message.';
+      if(q){q.name=n;q.text=t}else S.quick.push({id:uid(),name:n,text:t});
+      render();toast('Quick reply saved.');
+    }});
+}
+
+document.addEventListener('click',function(e){
+  var el=e.target.closest('[data-act]');
+  if(!el)return;
+  if(el.disabled)return;
+  var fn=ACT[el.dataset.act];
+  if(fn)fn(el.dataset,el);
+});
+document.addEventListener('input',function(e){
+  var t=e.target;
+  if(t.id==='composer'){
+    S.drafts[S.leadId]=t.value;
+    var b=$('#sendBtn');if(b)b.disabled=!t.value.trim();
+  }else if(t.id==='inboxSearch'){
+    S.q=t.value;$('#convList').innerHTML=convHtml(inboxList());
+  }
+});
+document.addEventListener('change',function(e){
+  var t=e.target;
+  if(t.id==='fInterest'){S.fInterest=t.value;render()}
+  else if(t.id==='fChannel'){S.fChannel=t.value;render()}
+  else if(t.id==='stageSel'){
+    var l=cur(),v=t.value;
+    if(v==='Lost'){t.value=l.stage;askLost(l)}
+    else moveStage(l,v,'');
+  }
+});
+document.addEventListener('keydown',function(e){
+  if(e.target.id==='composer'&&e.key==='Enter'&&!e.shiftKey&&!touch()){e.preventDefault();ACT.send()}
+});
+$('#dlg').addEventListener('click',function(e){if(e.target===this)this.close()});
+$('#dlg').addEventListener('close',function(){
+  if(document.activeElement!==document.body)return;
+  var t=$('#chatTitle')||$('#viewTitle');if(t)t.focus({preventScroll:true});
+});
+window.matchMedia('(min-width:760px)').addEventListener('change',render);
+window.matchMedia('(min-width:1180px)').addEventListener('change',render);
+
+S=fresh();
+render();
+setInterval(tick,20000);
+})();
+</script>
+</body>
+</html>
